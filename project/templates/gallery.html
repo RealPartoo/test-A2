@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Art lease · Gallery{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+    {% for it in items %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <div class="ratio ratio-16x9 bg-light">
+          <img src="{{ url_for('static', filename=it.imageUrl) }}" class="img-fluid" alt="{{ it.title }}">
+        </div>
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <h6 class="card-title mb-0">{{ it.title }}</h6>
+            <span class="badge rounded-pill {{ 'text-bg-success' if it.availability=='Available' else 'text-bg-secondary' }}">
+              {{ it.availability }}
+            </span>
+          </div>
+          <p class="mb-0 small text-muted">{{ it.artistName }}, {{ it.year }}</p>
+          <p class="mb-0 small text-muted">{{ it.galleryName }}</p>
+          <p class="mb-2 fw-semibold">AUD {{ '%.0f'|format(it.pricePerMonth) }}</p>
+          <div class="mt-auto text-end">
+            <a href="{{ url_for('main.item_detail', item_id=it.id) }}" class="btn btn-outline-secondary btn-sm">Details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

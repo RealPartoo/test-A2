@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Home · Art lease{% endblock %}
+{% block content %}
+<section class="container py-3">
+  <div class="row row-cols-2 row-cols-md-6 g-3">
+    <div class="col">
+      <a href="{{ url_for('main.gallery') }}" class="text-decoration-none d-block genre-card">
+        <img src="{{ url_for('static', filename='img/C1.jpg') }}" alt="" class="img-fluid">
+        <small class="d-block mt-2 text-dark text-center">Illustrative</small>
+      </a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('main.gallery') }}" class="text-decoration-none d-block genre-card">
+        <img src="{{ url_for('static', filename='img/C2.avif') }}" alt="" class="img-fluid">
+        <small class="d-block mt-2 text-dark text-center">Portrait</small>
+      </a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('main.gallery') }}" class="text-decoration-none d-block genre-card">
+        <img src="{{ url_for('static', filename='img/C9-2.avif') }}" alt="" class="img-fluid">
+        <small class="d-block mt-2 text-dark text-center">Surrealism</small>
+      </a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('main.gallery') }}" class="text-decoration-none d-block genre-card">
+        <img src="{{ url_for('static', filename='img/C4.avif') }}" alt="" class="img-fluid">
+        <small class="d-block mt-2 text-dark text-center">Graffiti</small>
+      </a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('main.gallery') }}" class="text-decoration-none d-block genre-card">
+        <img src="{{ url_for('static', filename='img/C9.avif') }}" alt="" class="img-fluid">
+        <small class="d-block mt-2 text-dark text-center">Comic</small>
+      </a>
+    </div>
+    <div class="col">
+      <a href="{{ url_for('main.gallery') }}" class="text-decoration-none d-block genre-card">
+        <img src="{{ url_for('static', filename='img/C7-2.png') }}" alt="" class="img-fluid">
+        <small class="d-block mt-2 text-dark text-center">Folk Art</small>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="hero">
+  <img src="{{ url_for('static', filename='img/home_new.png') }}" alt="">
+  <div class="position-absolute top-50 start-50 translate-middle text-center text-white px-3">
+    <h1 class="display-4 fw-bold mb-2" style="text-shadow:0 2px 8px black">
+      Artworks for every space, anytime. Simply rent.
+    </h1>
+    <a href="{{ url_for('main.gallery') }}" class="btn btn-dark btn-lg fw-semibold">Browse Now</a>
+  </div>
+</section>
+
+<!--
+<section class="container py-4">
+  <h4 class="mb-3">Featured Items</h4>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for it in items %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <div class="ratio ratio-16x9 bg-light">
+          <img src="{{ url_for('static', filename=it.imageUrl) }}" class="img-fluid" alt="{{ it.title }}">
+        </div>
+        <div class="card-body d-flex flex-column">
+          <h6 class="card-title mb-1">{{ it.title }}</h6>
+          <p class="mb-0 small text-muted">{{ it.artistName }} · {{ it.galleryName }}</p>
+          <span class="badge mt-2 {{ 'text-bg-success' if it.availability=='Available' else 'text-bg-secondary' }}">
+            {{ it.availability }}
+          </span>
+          <p class="fw-semibold mt-2 mb-0">AUD {{ '%.2f'|format(it.pricePerMonth) }}/mo</p>
+          <div class="mt-auto text-end">
+            <a href="{{ url_for('main.item_detail', item_id=it.id) }}" class="btn btn-outline-secondary btn-sm">View</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+-->
+
+{% endblock %}

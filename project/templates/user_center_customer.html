@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}My Orders{% endblock %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+  <h4 class="mb-3">My order</h4>
+</div>
+
+<style>
+  .custom-table thead{background:#f9f9f9;font-weight:600;}
+  .custom-table th,.custom-table td{padding:14px 20px;vertical-align:middle;}
+  .custom-table tbody tr{border-bottom:1px solid #e9ecef;}
+  .custom-table img{width:60px;height:40px;object-fit:cover;border-radius:6px;margin-right:8px;}
+</style>
+
+<div class="container-fluid">
+  <div class="table-responsive">
+    <table class="table custom-table">
+      <thead>
+        <tr>
+          <th>Artwork</th>
+          <th>Artist</th>
+          <th>Gallery</th>
+          <th>Total Price</th>
+          <th>Create Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><img src="https://picsum.photos/80/50?1" alt="">Abstract Composition</td>
+          <td>John Smith</td>
+          <td>Kelly Gallery</td>
+          <td>AUD 837</td>
+          <td>2025-09-10 14:30</td>
+        </tr>
+        <tr>
+          <td><img src="https://picsum.photos/80/50?2" alt="">Modern Expression</td>
+          <td>Jane Doe</td>
+          <td>Modern Gallery</td>
+          <td>AUD 700</td>
+          <td>2025-08-01 09:15</td>
+        </tr>
+        <tr>
+          <td><img src="https://picsum.photos/80/50?3" alt="">Colorful Dreams</td>
+          <td>Mike Johnson</td>
+          <td>Art Space</td>
+          <td>AUD 180</td>
+          <td>2025-09-25 16:45</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

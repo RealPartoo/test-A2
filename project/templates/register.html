@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="container py-5" style="max-width:520px;">
+  <h3 class="mb-3">Create account</h3>
+  <form method="post">
+    <input type="text" name="name" class="form-control mb-3" placeholder="Name" required>
+    <input type="email" name="email" class="form-control mb-3" placeholder="Email" required>
+    <input type="password" name="password" class="form-control mb-3" placeholder="Password" required>
+
+    <select name="role" class="form-select mb-3" required>
+      <option value="" disabled selected>Select role</option>
+      <option value="customer">Customer</option>
+      <option value="vendor">Vendor</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button class="btn btn-dark w-100">Register</button>
+  </form>
+</div>
+{% endblock %}

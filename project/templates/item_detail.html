@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }} · Details{% endblock %}
+{% block content %}
+<main class="container py-4 py-md-5">
+  <div class="row g-4">
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="ratio ratio-4x3">
+          <img src="{{ url_for('static', filename=item.imageUrl) }}" class="w-100 h-100" style="object-fit:cover" alt="{{ item.title }}">
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm border-0 bg-body-secondary-subtle">
+        <div class="card-body p-4 position-relative">
+          <span class="badge rounded-pill {{ 'text-bg-success' if item.availability=='Available' else 'text-bg-secondary' }} position-absolute top-0 end-0 m-3 px-3 py-2">
+            {{ item.availability }}
+          </span>
+          <h1 class="display-6 mb-1">{{ item.title }}</h1>
+          <p class="fs-5 mb-1">{{ item.artistName }}, {{ item.year }}</p>
+          <p class="text-muted fs-6 mb-2">{{ item.galleryName }}</p>
+          <p class="text-muted small mb-1">{{ item.type }}&nbsp;&nbsp;|&nbsp;&nbsp;{{ item.genre }}</p>
+          <p class="text-muted small mb-4">{{ item.size }}</p>
+          <p class="mb-4">{{ item.description }}</p>
+          <h5 class="mb-1">Price</h5>
+          <p class="fs-4 fw-semibold mb-4">AUD {{ '%.2f'|format(item.pricePerMonth) }} / month</p>
+
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="card-title mb-3">Select Rental Period</h6>
+              <form method="post" action="{{ url_for('main.cart_add') }}">
+                <input type="hidden" name="item_id" value="{{ item.id }}">
+                <div class="row g-2">
+                  <div class="col-12 col-sm-6">
+                    <label class="form-label small text-muted mb-1">Months</label>
+                    <select name="months" class="form-select">
+                      <option value="1" selected>1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="6">6</option>
+                      <option value="12">12</option>
+                    </select>
+                  </div>
+                </div>
+                <button class="btn btn-dark w-100 mt-3" {% if item.availability!='Available' %}disabled{% endif %}>+Add</button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
