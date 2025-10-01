@@ -11,7 +11,49 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-  {% include "_navbar.html" %}
+  <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="{{ url_for('main.home') }}">Art lease</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"
+              aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="nav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link{% if request.path=='/' %} active{% endif %}"
+                                  href="{{ url_for('main.home') }}">Home</a></li>
+          <li class="nav-item"><a class="nav-link{% if request.path.startswith('/gallery') %} active{% endif %}"
+                                  href="{{ url_for('main.gallery') }}">Art lease</a></li>
+          <li class="nav-item"><a class="nav-link{% if request.path.startswith('/checkout') %} active{% endif %}"
+                                  href="{{ url_for('main.checkout') }}">Checkout</a></li>
+        </ul>
+        <div class="ms-lg-auto d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-3">
+          {% if session.get('user_id') %}
+            <div class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                 aria-expanded="false">Profile</a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                {% if session.get('user_role') == 'admin' %}
+                  <li><a class="dropdown-item" href="{{ url_for('main.admin_center') }}">Admin Center</a></li>
+                {% elif session.get('user_role') == 'vendor' %}
+                  <li><a class="dropdown-item" href="{{ url_for('main.vendor_center') }}">Vendor Center</a></li>
+                {% elif session.get('user_role') == 'customer' %}
+                  <li><a class="dropdown-item" href="{{ url_for('main.customer_center') }}">My Orders</a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+              </ul>
+            </div>
+            <span class="small text-muted text-nowrap">Hi, {{ session.get('name') }} ({{ session.get('role') }})</span>
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
+          {% else %}
+            <a class="btn btn-light btn-sm" href="{{ url_for('auth.register') }}">Sign Up</a>
+            <a class="btn btn-dark btn-sm" href="{{ url_for('auth.login') }}">Sign in</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
 
   <main class="flex-grow-1">
     <div class="container pt-3">
@@ -30,7 +72,38 @@
     {% block content %}{% endblock %}
   </main>
 
-  {% include "_footer.html" %}
+  <footer class="mt-auto border-top">
+    <div class="container">
+      <div class="d-flex flex-wrap justify-content-between align-items-center py-3">
+        <div class="col-md-4 d-flex align-items-center">
+          <span class="text-muted">© 2025 Art Lease Company, Inc</span>
+        </div>
+        <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
+          <li class="ms-3">
+            <a class="text-muted" href="#" aria-label="Twitter">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M5.026 15c6.038 0 9.341-5.003 9.341-9.334 0-.14 0-.282-.006-.422A6.685 6.685 0 0 0 16 3.542c-.616.273-1.277.457-1.971.539a3.286 3.286 0 0 0-5.595 2.994A9.325 9.325 0 0 1 1.112 2.1a3.286 3.286 0 0 0 1.017 4.382c-.54-.017-1.049-.166-1.494-.416v.042a3.285 3.285 0 0 0 2.634 3.218 3.203 3.203 0 0 1-.864.115 3.23 3.23 0 0 1-.615-.057 3.286 3.286 0 0 0 3.067 2.277A6.588 6.588 0 0 1 .78 13.58a9.29 9.29 0 0 0 5.026 1.47"/>
+              </svg>
+            </a>
+          </li>
+          <li class="ms-3">
+            <a class="text-muted" href="#" aria-label="Instagram">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C5.83 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.92 3.92 0 0 0-1.417.923A3.927 3.927 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8c0 2.173.01 2.445.048 3.298.04.853.174 1.434.372 1.943.205.526.478.972.923 1.417.444.445.89.718 1.416.923.51.198 1.09.333 1.943.372C5.556 15.99 5.828 16 8 16s2.444-.01 3.298-.048c.851-.04 1.434-.174 1.943-.372a3.92 3.92 0 0 0 1.416-.923c.445-.445.718-.891.923-1.417.197-.509.332-1.09.372-1.943C15.99 10.445 16 10.173 16 8s-.01-2.445-.048-3.299c-.04-.85-.175-1.432-.372-1.94a3.93 3.93 0 0 0-.923-1.417A3.912 3.912 0 0 0 13.24.42c-.51-.198-1.093-.333-1.944-.372C10.443.01 10.172 0 8 0zM8 4.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zm4.271-.73a.96.96 0 1 0 0 1.92.96.96 0 0 0 0-1.92z"/>
+              </svg>
+            </a>
+          </li>
+          <li class="ms-3">
+            <a class="text-muted" href="#" aria-label="Facebook">
+              <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M16 8.049C16 3.603 12.418 0 8 0S0 3.603 0 8.049C0 12.066 2.926 15.396 6.75 16V10.375H4.72V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258V8.05h2.218l-.354 2.326H9.25V16C13.074 15.396 16 12.066 16 8.049z"/>
+              </svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
