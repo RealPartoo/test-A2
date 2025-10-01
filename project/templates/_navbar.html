@@ -6,39 +6,42 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="nav">
-  <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-    <li class="nav-item"><a class="nav-link{% if request.path=='/' %} active{% endif %}" href="{{ url_for('main.home') }}">Home</a></li>
-    <li class="nav-item"><a class="nav-link{% if request.path.startswith('/gallery') %} active{% endif %}" href="{{ url_for('main.gallery') }}">Art lease</a></li>
-    <li class="nav-item"><a class="nav-link{% if request.path.startswith('/checkout') %} active{% endif %}" href="{{ url_for('main.checkout') }}">Checkout</a></li>
-  </ul>
-    <li class="nav-item dropdown">
-      <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Profile</a>
-      <ul class="dropdown-menu dropdown-menu-end">
-        {% if session.get('user_role') == 'admin' %}
-          <li><a class="dropdown-item" href="{{ url_for('main.admin_center') }}">Admin Center</a></li>
-        {% elif session.get('user_role') == 'vendor' %}
-          <li><a class="dropdown-item" href="{{ url_for('main.vendor_center') }}">Vendor Center</a></li>
-        {% elif session.get('user_role') == 'customer' %}
-          <li><a class="dropdown-item" href="{{ url_for('main.customer_center') }}">My Orders</a></li>
-        {% endif %}
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link{% if request.path=='/' %} active{% endif %}" href="{{ url_for('main.home') }}">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.path.startswith('/gallery') %} active{% endif %}" href="{{ url_for('main.gallery') }}">Art lease</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link{% if request.path.startswith('/checkout') %} active{% endif %}" href="{{ url_for('main.checkout') }}">Checkout</a>
+        </li>
       </ul>
-    </li>
 
-  {% if session.get('user_id') %}
-    <span class="me-2 small text-muted">Hi, {{ session.get('name') }} ({{ session.get('role') }})</span>
-    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
-  {% else %}
-    <div class="d-flex gap-2">
-      <a class="btn btn-light btn-sm" href="{{ url_for('auth.register') }}">Sign Up</a>
-      <a class="btn btn-dark btn-sm" href="{{ url_for('auth.login') }}">Sign in</a>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Profile</a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% if session.get('user_role') == 'admin' %}
+            <li><a class="dropdown-item" href="{{ url_for('main.admin_center') }}">Admin Center</a></li>
+          {% elif session.get('user_role') == 'vendor' %}
+            <li><a class="dropdown-item" href="{{ url_for('main.vendor_center') }}">Vendor Center</a></li>
+          {% elif session.get('user_role') == 'customer' %}
+            <li><a class="dropdown-item" href="{{ url_for('main.customer_center') }}">My Orders</a></li>
+          {% endif %}
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign out</a></li>
+        </ul>
+      </li>
+
+      {% if session.get('user_id') %}
+        <span class="me-2 small text-muted">Hi, {{ session.get('name') }} ({{ session.get('role') }})</span>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auth.logout') }}">Logout</a>
+      {% else %}
+        <div class="d-flex gap-2">
+          <a class="btn btn-light btn-sm" href="{{ url_for('auth.register') }}">Sign Up</a>
+          <a class="btn btn-dark btn-sm" href="{{ url_for('auth.login') }}">Sign in</a>
+        </div>
+      {% endif %}
     </div>
-  {% endif %}
-</div>
   </div>
 </nav>
-
-
-
-
