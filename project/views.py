@@ -16,13 +16,17 @@ def role_required(*roles):
     def wrapper(fn):
         def inner(*a, **kw):
             if not current_user.is_authenticated:
-                return abort(403)
-            if current_user.role not in roles:
-                return abort(403)
+                # ปล่อยให้ login_required จัดการ redirect ไป auth.login
+                pass
+            else:
+                if roles and current_user.role not in roles:
+                    return abort(403)
             return fn(*a, **kw)
         inner.__name__ = fn.__name__
         return login_required(inner)
     return wrapper
+
+
 
 def _cart():
     return session.setdefault("cart", [])
