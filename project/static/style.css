@@ -245,3 +245,16 @@
 
 .genre-card img { width: 100%; aspect-ratio: 16/6; object-fit: cover; display: block; }
 .ratio-16x9 { min-height: 220px; }
+
+
+
+  /* Force black toast with white text */
+  .toast.black-toast {
+    background: #000 !important;
+    color: #fff !important;
+  }
+  /* Make the close (×) icon white */
+  .toast.black-toast .btn-close {
+    filter: invert(1);
+  }
+

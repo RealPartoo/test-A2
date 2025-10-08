@@ -1,30 +1,149 @@
 {% extends "base.html" %}
 {% block title %}Art lease · Gallery{% endblock %}
+
 {% block content %}
-<div class="container py-4">
+<div class="container py-3">
+
+  <!-- Filters -->
+  <form class="row g-2 align-items-end mb-3" method="get" action="{{ url_for('main.gallery') }}">
+<div class="col-6 col-md-3 col-lg-2">
+  <label class="form-label small">Artists</label>
+  <select class="form-select form-select-sm" name="artist">
+    <option value="" {{ 'selected' if filters.artist=='' }}>All</option>
+    {% for name in artist_opts %}
+      <option value="{{ name }}" {{ 'selected' if filters.artist==name }}>{{ name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="col-6 col-md-3 col-lg-2">
+  <label class="form-label small">Galleries</label>
+  <select class="form-select form-select-sm" name="gallery">
+    <option value="" {{ 'selected' if filters.gallery=='' }}>All</option>
+    {% for name in gallery_opts %}
+      <option value="{{ name }}" {{ 'selected' if filters.gallery==name }}>{{ name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+    <div class="col-6 col-md-3 col-lg-2">
+      <label class="form-label small">Type</label>
+      <select class="form-select form-select-sm" name="type">
+        {% set sel = filters.type %}
+        <option value="" {{ 'selected' if sel=='' }}>All</option>
+        {% for v in ['Oil Painting','Pastel Painting','Watercolor Painting','Acrylic Painting','Digital Painting'] %}
+          <option value="{{ v }}" {{ 'selected' if sel==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-3 col-lg-2">
+      <label class="form-label small">Genre</label>
+      <select class="form-select form-select-sm" name="genre">
+        {% set sel = filters.genre %}
+        <option value="" {{ 'selected' if sel=='' }}>All</option>
+        {% for v in ['Illustrative','Portrait','Surrealism','Graffiti','Comic','Folk Art'] %}
+          <option value="{{ v }}" {{ 'selected' if sel==v }}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-3 col-lg-2">
+      <label class="form-label small">Price</label>
+      <select class="form-select form-select-sm" name="price">
+        {% set sel = filters.price %}
+        <option value="" {{ 'selected' if sel=='' }}>All</option>
+        <option value="0-50" {{ 'selected' if sel=='0-50' }}>AUD 0–50</option>
+        <option value="50-500" {{ 'selected' if sel=='50-500' }}>AUD 50–500</option>
+        <option value="500-5000" {{ 'selected' if sel=='500-5000' }}>AUD 500–5,000</option>
+        <option value="5000-20000" {{ 'selected' if sel=='5000-20000' }}>AUD 5,000–20,000</option>
+        <option value="20000+" {{ 'selected' if sel=='20000+' }}>AUD 20,000+</option>
+      </select>
+    </div>
+
+    <div class="col-6 col-md-3 col-lg-2">
+      <label class="form-label small">Size</label>
+      <select class="form-select form-select-sm" name="size">
+        {% set sel = filters.size %}
+        <option value="" {{ 'selected' if sel=='' }}>All</option>
+        <option value="s" {{ 'selected' if sel=='s' }}>Small (&lt; 40cm)</option>
+        <option value="m" {{ 'selected' if sel=='m' }}>Medium (40–100cm)</option>
+        <option value="l" {{ 'selected' if sel=='l' }}>Large (100–180cm)</option>
+        <option value="xl" {{ 'selected' if sel=='xl' }}>Oversize (&gt; 180cm)</option>
+      </select>
+    </div>
+
+    <div class="col-6 col-md-3 col-lg-2">
+      <label class="form-label small">Time</label>
+      <select class="form-select form-select-sm" name="period">
+        {% set sel = filters.period %}
+        <option value="" {{ 'selected' if sel=='' }}>All</option>
+        {% for v in ['2020s','2010s','2000s','1990s','1980s','pre-1980'] %}
+          <option value="{{ v }}" {{ 'selected' if sel==v }}>{{ v if v!='pre-1980' else 'Before 1980s' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-4">
+      <label class="form-label small">Search</label>
+      <div class="input-group input-group-sm">
+        <button class="btn btn-dark" type="submit">Apply</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.gallery') }}">Reset</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Grid -->
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
     {% for it in items %}
-    <div class="col">
-      <div class="card h-100 shadow-sm">
-        <div class="ratio ratio-16x9 bg-light">
-          <img src="{{ url_for('static', filename=it.imageUrl) }}" class="img-fluid" alt="{{ it.title }}">
-        </div>
-        <div class="card-body d-flex flex-column">
-          <div class="d-flex justify-content-between align-items-start mb-1">
-            <h6 class="card-title mb-0">{{ it.title }}</h6>
-            <span class="badge rounded-pill {{ 'text-bg-success' if it.availability=='Available' else 'text-bg-secondary' }}">
-              {{ it.availability }}
-            </span>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="ratio ratio-16x9 bg-light">
+            <img src="{{ url_for('static', filename=it.imageUrl) }}" alt="{{ it.title }}" class="img-fluid">
           </div>
-          <p class="mb-0 small text-muted">{{ it.artistName }}, {{ it.year }}</p>
-          <p class="mb-0 small text-muted">{{ it.galleryName }}</p>
-          <p class="mb-2 fw-semibold">AUD {{ '%.0f'|format(it.pricePerMonth) }}</p>
-          <div class="mt-auto text-end">
-            <a href="{{ url_for('main.item_detail', item_id=it.id) }}" class="btn btn-outline-secondary btn-sm">Details</a>
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <h6 class="card-title mb-0">{{ it.title }}</h6>
+              <span class="badge rounded-pill {{ 'text-bg-success' if it.leaseStatus=='Available' else 'text-bg-secondary' }}">
+                {{ it.leaseStatus }}
+              </span>
+            </div>
+
+            <p class="mb-0 small text-muted">{{ it.artistName }}{% if it.year %}, {{ it.year }}{% endif %}</p>
+            {% if it.galleryName %}<p class="mb-0 small text-muted">{{ it.galleryName }}</p>{% endif %}
+            <p class="mb-2 fw-semibold">AUD {{ '%.0f'|format(it.pricePerMonth|float) }}</p>
+
+            <div class="mt-auto">
+              <div class="d-flex align-items-center gap-2">
+                <a href="{{ url_for('main.item_detail', item_id=it.artworkId) }}"
+                   class="btn btn-outline-secondary btn-sm">
+                  Details
+                </a>
+
+                <form method="post" action="{{ url_for('main.cart_add', item_id=it.artworkId) }}" class="d-flex gap-2 ms-auto">
+                  <select name="months" class="form-select form-select-sm" style="width:90px">
+                    {% for m in range(1,13) %}
+                      <option value="{{ m }}">{{ m }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-dark btn-sm"
+                          {% if it.leaseStatus != 'Available' %}disabled{% endif %}>
+                    +Add
+                  </button>
+                </form>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
-    </div>
+    {% else %}
+      <div class="col-12">
+        <div class="alert alert-light border d-flex align-items-center">
+          <div>No artworks found for your filters.</div>
+          <a class="btn btn-link ms-2 p-0" href="{{ url_for('main.gallery') }}">Clear filters</a>
+        </div>
+      </div>
     {% endfor %}
   </div>
 </div>

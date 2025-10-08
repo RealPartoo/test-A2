@@ -1,234 +1,177 @@
-from __future__ import annotations
-from decimal import Decimal
-from flask import (
-    Blueprint, render_template, redirect, url_for,
-    request, session, flash, abort
+# project/views.py
+import os, uuid
+from flask import Blueprint, render_template, abort, request, redirect, url_for, flash, current_app, session
+from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+from .models import (
+    ensure_provider_for_user, create_artwork, list_artworks, get_artwork, list_distinct_artists, list_distinct_galleries, 
 )
-from functools import wraps
+from flask import send_from_directory
+
 
 main = Blueprint("main", __name__)
 
-ITEMS = [
-    {
-        "id": 1,
-        "title": "Sunset Abstraction",
-        "artistName": "A. Morgan",
-        "galleryName": "Studio Alpha",
-        "type": "Oil Painting",
-        "genre": "Illustrative",
-        "size": "50.8 × 40.6 cm",
-        "year": 2025,
-        "availability": "Available",
-        "pricePerMonth": 59.0,
-        "imageUrl": "img/P1.png",
-        "description": "Warm abstract planes framing a low sun.",
-    },
-    {
-        "id": 2,
-        "title": "Playful Lines",
-        "artistName": "R. Dune",
-        "galleryName": "Blue Dot",
-        "type": "Digital Painting",
-        "genre": "Surrealism",
-        "size": "60 × 42 cm",
-        "year": 2025,
-        "availability": "Available",
-        "pricePerMonth": 39.0,
-        "imageUrl": "img/P2.png",
-        "description": "Loose, looping lines on a pastel field.",
-    },
-    {
-        "id": 3,
-        "title": "Golden Orbit",
-        "artistName": "N. Lark",
-        "galleryName": "Orbit House",
-        "type": "Acrylic Painting",
-        "genre": "Graffiti",
-        "size": "80 × 60 cm",
-        "year": 2024,
-        "availability": "Unavailable",
-        "pricePerMonth": 79.0,
-        "imageUrl": "img/magier-wXqd2vZTdJQ-unsplash.jpg",
-        "description": "Bold arcs intersecting a dark disk.",
-    },
-    {
-        "id": 4,
-        "title": "Forms in Yellow",
-        "artistName": "E. Field",
-        "galleryName": "Studio Alpha",
-        "type": "Oil Painting",
-        "genre": "Folk Art",
-        "size": "60 × 60 cm",
-        "year": 2025,
-        "availability": "Available",
-        "pricePerMonth": 65.0,
-        "imageUrl": "img/premium_vector-1689096860545-a5e876cad8fd.avif",
-        "description": "Organic forms floating on gold ground.",
-    },
-    {
-        "id": 5,
-        "title": "Bench with Cat",
-        "artistName": "K. Mori",
-        "galleryName": "Blue Dot",
-        "type": "Pastel Painting",
-        "genre": "Illustrative",
-        "size": "60 × 42 cm",
-        "year": 2025,
-        "availability": "Available",
-        "pricePerMonth": 29.0,
-        "imageUrl": "img/C1.jpg",
-        "description": "Cozy scene: figure pats a curious cat.",
-    },
-    {
-        "id": 6,
-        "title": "Aurora Flow",
-        "artistName": "P. Czerwinski",
-        "galleryName": "Orbit House",
-        "type": "Acrylic Painting",
-        "genre": "Surrealism",
-        "size": "60 × 42 cm",
-        "year": 2025,
-        "availability": "Available",
-        "pricePerMonth": 35.0,
-        "imageUrl": "img/pawel-czerwinski-ruJm3dBXCqw-unsplash.jpg",
-        "description": "Cool and warm streams like aurora.",
-    },
-]
-
-def _get_cart() -> list[dict]:
-    cart = session.get("cart")
-    if not isinstance(cart, list):
-        cart = []
-        session["cart"] = cart
-    return cart
-
-def _recalc_totals(cart: list[dict]) -> Decimal:
-    total = Decimal("0")
-    for line in cart:
-        price = Decimal(str(line.get("pricePerMonth", 0)))
-        months = int(line.get("months", 1) or 1)
-        line["subtotal"] = float(price * months)
-        total += price * months
-    session["cart_total"] = float(total)
-    return total
-
+# ---------------- helpers ----------------
 def role_required(*roles):
-    """
-    บังคับว่า user ต้องล็อกอินและมี role ใด role หนึ่งใน roles
-    ถ้ายังไม่ล็อกอิน -> redirect ไป login พร้อม next
-    ถ้า role ไม่ตรง -> 403
-    """
-    def decorator(view_func):
-        @wraps(view_func)
-        def wrapper(*args, **kwargs):
-            role = session.get("user_role")
-            if role is None:
-                flash("Please sign in to continue.", "warning")
-                return redirect(url_for("auth.login", next=request.path))
-            if role not in roles:
-                abort(403)
-            return view_func(*args, **kwargs)
-        return wrapper
-    return decorator
+    def wrapper(fn):
+        def inner(*a, **kw):
+            if not current_user.is_authenticated:
+                return abort(403)
+            if current_user.role not in roles:
+                return abort(403)
+            return fn(*a, **kw)
+        inner.__name__ = fn.__name__
+        return login_required(inner)
+    return wrapper
 
-@main.route("/")
+def _cart():
+    return session.setdefault("cart", [])
+
+def _save_image(file_storage):
+    """
+    เซฟไฟล์ลง <project>/project/static/uploads/<new_name>
+    และคืนค่า string สำหรับเก็บใน DB เป็น 'uploads/<new_name>'
+    (เพื่อให้เรียกใช้ด้วย url_for('static', filename=imageUrl) ได้ตรง)
+    """
+    cfg = current_app.config
+    fname = secure_filename(file_storage.filename or "")
+    ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+    if ext not in cfg["ALLOWED_IMAGE_EXTS"]:
+        raise ValueError("Unsupported image type")
+    new_name = f"{uuid.uuid4().hex}.{ext}"
+    dest = os.path.join(cfg["UPLOAD_FOLDER"], new_name)
+    file_storage.save(dest)
+    # ✅ เก็บใน DB แบบ static-relative
+    return f"uploads/{new_name}"
+
+# ---------------- pages ----------------
+@main.get("/")
 def home():
-    return render_template("home.html") if _has("home.html") else render_template("base.html")
+    return render_template("home.html")
 
-
-def _has(name: str) -> bool:
-    # util เล็ก ๆ ให้เรา render base.html ได้หากไม่มี home.html
-    # ในโปรเจคจริงคุณน่าจะมี home.html อยู่แล้ว
-    import os
-    from flask import current_app
-    tpl = os.path.join(current_app.root_path, "templates", name)
-    return os.path.exists(tpl)
-
-@main.route("/gallery")
+@main.get("/gallery")
 def gallery():
-    return render_template("gallery.html", items=ITEMS)
+    filters = {
+        "artist":  request.args.get("artist") or "",
+        "gallery": request.args.get("gallery") or "",
+        "type":    request.args.get("type") or "",
+        "genre":   request.args.get("genre") or "",
+        "price":   request.args.get("price") or "",
+        "size":    request.args.get("size") or "",
+        "period":  request.args.get("period") or "",
+        "q":       request.args.get("q") or "",
+    }
+    items = list_artworks(filters)
 
-@main.route("/item/<int:item_id>")
+    # dropdown options จาก DB
+    artist_opts   = list_distinct_artists()
+    gallery_opts  = list_distinct_galleries()
+
+    return render_template(
+        "gallery.html",
+        items=items,
+        filters=filters,
+        artist_opts=artist_opts,
+        gallery_opts=gallery_opts,
+    )
+
+@main.get("/item/<int:item_id>")
 def item_detail(item_id: int):
-    item = next((i for i in ITEMS if i["id"] == item_id), None)
-    if not item:
+    it = get_artwork(item_id)
+    if not it:
         abort(404)
-    ctx = {"item": item, "it": item, **item}
-    return render_template("item_detail.html", **ctx)
+    return render_template("item_detail.html", item=it)
 
-# IMPORTANT: no <item_id> in the path anymore
-@main.route("/cart/add", methods=["POST"])
-def cart_add():
-    try:
-        item_id = int(request.form.get("item_id", "0"))
-    except ValueError:
-        item_id = 0
+# ---- cart ----
+@main.post("/cart/add/<int:item_id>")
+def cart_add(item_id: int):
+    it = get_artwork(item_id)
+    if not it:
+        flash("Artwork not found", "warning")
+        return redirect(url_for("main.gallery"))
+    months = int(request.form.get("months", "1") or 1)
+    _cart().append({
+        "id": it["artworkId"],
+        "title": it["title"],
+        "imageUrl": it["imageUrl"],
+        "pricePerMonth": float(it["pricePerMonth"]),
+        "months": months,
+        "subtotal": float(it["pricePerMonth"]) * months
+    })
+    session.modified = True
+    flash("Added to cart", "success")
+    return redirect(request.referrer or url_for("main.gallery"))
 
-    item = next((i for i in ITEMS if i["id"] == item_id), None)
-    if not item:
-        abort(404)
+@main.get("/cart/clear")
+def cart_clear():
+    session.pop("cart", None)
+    flash("Cart cleared", "info")
+    return redirect(request.referrer or url_for("main.gallery"))
 
-    months_raw = request.form.get("months", "1")
-    try:
-        months = max(1, int(months_raw))
-    except ValueError:
-        months = 1
-
-    cart = _get_cart()
-    existing = next((c for c in cart if c["id"] == item_id), None)
-    if existing:
-        existing["months"] = months
-    else:
-        cart.append({
-            "id": item["id"],
-            "title": item["title"],
-            "pricePerMonth": item["pricePerMonth"],
-            "imageUrl": item["imageUrl"],
-            "months": months,
-        })
-
-    _recalc_totals(cart)
-    flash("Item added to cart.", "success")
-    return redirect(url_for("main.checkout"))
-
-@main.route("/checkout")
+@main.get("/checkout")
 def checkout():
-    cart = _get_cart()
-    _recalc_totals(cart)
-    total = session.get("cart_total", 0.0)
+    cart = _cart()
+    total = sum(x["subtotal"] for x in cart)
     return render_template("checkout.html", cart=cart, total=total)
 
-# -----------------------------
-# User Centers (สามหน้า)
-# -----------------------------
-@main.route("/customer/center")
-@role_required("customer", "admin")
-def customer_center():
-    return render_template("user_center_customer.html")
+# ---- upload (vendor) ----
+@main.route("/upload", methods=["GET", "POST"])
+@role_required("artist", "gallery", "admin")
+def upload():
+    prov = ensure_provider_for_user(current_user.id, current_user.role, current_user.userName)
 
-@main.route("/vendor/center")
-@role_required("vendor", "admin")
-def vendor_center():
-    return render_template("user_center_vendor.html")
+    if request.method == "POST":
+        try:
+            img = request.files.get("image")
+            if not img or img.filename == "":
+                flash("Please choose an image", "warning")
+                return redirect(url_for("main.upload"))
+            image_path = _save_image(img)  # <-- คืน 'uploads/<file>'
 
-@main.route("/admin/center")
+            data = {
+                "title": request.form.get("title", "").strip(),
+                "artistName": request.form.get("artistName", "").strip() or (prov["artistName"] or ""),
+                "galleryName": request.form.get("galleryName", "").strip() or (prov["galleryName"] or ""),
+                "type": request.form.get("type"),
+                "genre": request.form.get("genre"),
+                "pricePerMonth": float(request.form.get("pricePerMonth", "0") or 0),
+                "size": request.form.get("size"),
+                "year": request.form.get("year"),
+                "leaseStatus": request.form.get("leaseStatus", "Available"),
+                "imageUrl": image_path,  # <-- เก็บแบบ static-relative
+                "description": request.form.get("description", "")[:1000]
+            }
+            if not data["title"] or data["pricePerMonth"] <= 0:
+                flash("Please complete required fields", "warning")
+                return redirect(url_for("main.upload"))
+
+            new_id = create_artwork(prov["providerId"], data)
+            flash("Artwork uploaded", "success")
+            return redirect(url_for("main.item_detail", item_id=new_id))
+        except ValueError as e:
+            flash(str(e), "danger")
+        except Exception:
+            flash("Upload failed", "danger")
+
+    return render_template("vendor_manage.html")
+
+@main.get("/uploads/<path:filename>")
+def uploads_compat(filename):
+    # ชี้ไปยังโฟลเดอร์จริงที่ตั้งไว้ใน __init__.py -> app.config["UPLOAD_FOLDER"]
+    return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
+
+# ---- centers (minimal) ----
+@main.get("/admin/center")
 @role_required("admin")
 def admin_center():
     return render_template("user_center_admin.html")
 
+@main.get("/customer/center")
+@role_required("customer")
+def customer_center():
+    return render_template("user_center_customer.html")
 
-# -----------------------------
-# Dev helper: สลับ role ง่าย ๆ (อย่าใช้ใน production)
-# -----------------------------
-@main.route("/__as/<role>")
-def as_role(role):
-    if role not in ("admin", "vendor", "customer"):
-        abort(400)
-    session.clear()
-    session["user_id"] = 999
-    session["user_email"] = f"{role}@dev.local"
-    session["user_role"] = role
-    return f"Now acting as {role}. Try /{role}/center"
-
-
-
+@main.get("/vendor/center")
+@role_required("artist", "gallery", "admin")
+def vendor_center():
+    return render_template("user_center_vendor.html")

@@ -8,75 +8,87 @@
         <div class="card-body p-4 p-md-5">
           <h3 class="mb-2">Upload Your Artwork</h3>
           <p class="text-muted mb-4">Fill in the details below to put your artwork up for rent.</p>
-          <form>
-            <div class="mb-3">
-              <label class="form-label">*Artwork Name</label>
-              <input type="text" class="form-control" placeholder="Please enter artwork name">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">*Artist Name</label>
-              <input type="text" class="form-control" placeholder="Please enter artist name">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">*Gallery</label>
-              <input type="text" class="form-control" placeholder="Please enter gallery name">
-            </div>
+
+          <form action="{{ url_for('main.upload') }}" method="post" enctype="multipart/form-data">
+            <div class="mb-3"><label class="form-label">*Artwork Name</label>
+              <input name="title" type="text" class="form-control" required></div>
+
+            <div class="mb-3"><label class="form-label">Artist Name</label>
+              <input name="artistName" type="text" class="form-control" placeholder="(optional — auto-fill from provider)"></div>
+
+            <div class="mb-3"><label class="form-label">Gallery Name</label>
+              <input name="galleryName" type="text" class="form-control" placeholder="(optional — auto-fill from provider)"></div>
+
             <div class="mb-3">
               <label class="form-label">*Type</label>
-              <select class="form-select">
-                <option selected disabled>Choose type</option>
-                <option>Oil Painting</option>
-                <option>Pastel Painting</option>
-                <option>Watercolor Painting</option>
-                <option>Acrylic Painting</option>
+              <select name="type" class="form-select" required>
+                <option value="" disabled selected>Choose type</option>
+                <option>Oil Painting</option><option>Pastel Painting</option>
+                <option>Watercolor Painting</option><option>Acrylic Painting</option>
                 <option>Digital Painting</option>
               </select>
             </div>
+
             <div class="mb-3">
               <label class="form-label">*Genre</label>
-              <select class="form-select">
-                <option selected disabled>Choose genre</option>
-                <option>Illustrative</option>
-                <option>Portrait</option>
-                <option>Surrealism</option>
-                <option>Graffiti</option>
-                <option>Comic</option>
-                <option>Folk Art</option>
+              <select name="genre" class="form-select" required>
+                <option value="" disabled selected>Choose genre</option>
+                <option>Illustrative</option><option>Portrait</option>
+                <option>Surrealism</option><option>Graffiti</option>
+                <option>Comic</option><option>Folk Art</option>
               </select>
             </div>
+
             <div class="mb-3">
               <label class="form-label">*Size</label>
-              <input type="text" class="form-control" placeholder="Please enter size">
+              <select name="size" class="form-select" required>
+                <option value="" disabled selected>Choose size</option>
+                <option>Small ≤40cm</option><option>Medium 41–100cm</option>
+                <option>Large 101–180cm</option><option>Oversize 180cm+</option>
+              </select>
             </div>
+
             <div class="mb-3">
-              <label class="form-label">*Time</label>
-              <input type="text" class="form-control" placeholder="Please enter time">
+              <label class="form-label">*Time (Period)</label>
+              <select name="year" class="form-select" required>
+                <option value="" disabled selected>Choose time</option>
+                <option>before 1980s</option><option>1980s</option><option>1990s</option>
+                <option>2000</option><option>2010</option><option>2020</option>
+                <option>2021</option><option>2022</option><option>2023</option><option>2024</option><option>2025</option>
+              </select>
             </div>
-            <div class="col-12 col-md-5">
+
+            <div class="col-12 col-md-6 mb-3">
               <label class="form-label">*Rental Price (per month)</label>
               <div class="input-group">
                 <span class="input-group-text">AUD</span>
-                <input type="number" class="form-control" placeholder="Please enter price">
+                <input name="pricePerMonth" type="number" step="0.01" min="0.01" class="form-control" required>
               </div>
             </div>
-            <div class="mt-3">
-              <label class="form-label">*Description</label>
-              <textarea class="form-control" rows="5" placeholder="Describe your artwork"></textarea>
+
+            <div class="mb-3">
+              <label class="form-label">Lease Status</label>
+              <select name="leaseStatus" class="form-select">
+                <option>Available</option>
+                <option>Unavailable</option>
+              </select>
             </div>
-            <div class="mt-3 mb-2">
-              <div class="form-label fw-semibold">Artwork Image</div>
-              <div class="mt-3 w-100 border border-2 border-dashed rounded-4 bg-body-secondary-subtle d-flex align-items-center justify-content-center text-center p-4 dropzone">
-                <div class="text-muted">
-                  <img src="{{ url_for('static', filename='img/upload.png') }}" class="img-fluid w-50" alt="">
-                  <div class="fw-semibold">Upload an image</div>
-                  <small class="d-block text-body-secondary mt-1">PNG, JPG up to 100MB</small>
-                </div>
-              </div>
+
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea name="description" class="form-control" rows="5" maxlength="1000" placeholder="Describe your artwork (max 1000 chars)"></textarea>
             </div>
-            <div class="mt-3 mb-4 d-flex justify-content-center">
+
+            <div class="mb-4">
+              <label class="form-label">*Artwork Image (PNG/JPG/WebP/GIF)</label>
+              <input name="image" type="file" accept="image/*" class="form-control" required>
+            </div>
+
+            <div class="mt-3 d-flex justify-content-center">
               <button type="submit" class="btn btn-dark px-4">Submit</button>
             </div>
           </form>
+
         </div>
       </div>
     </div>

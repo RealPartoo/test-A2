@@ -1,47 +1,153 @@
--- ===== Schema =====
-CREATE TABLE IF NOT EXISTS users(
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(120) NOT NULL,
-  email VARCHAR(120) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role ENUM('admin','vendor','customer') NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- project/database.sql
+-- Target: MySQL 8, utf8mb4
+-- Database name ตามที่คุณใช้: IFN582_Database
 
-CREATE TABLE IF NOT EXISTS categories(
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(80) NOT NULL
-);
+DROP DATABASE IF EXISTS IFN582_Database;
+CREATE DATABASE IF NOT EXISTS IFN582_Database
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE IFN582_Database;
 
-CREATE TABLE IF NOT EXISTS items(
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  vendor_id INT, category_id INT,
-  title VARCHAR(160), artist VARCHAR(160), gallery VARCHAR(160),
-  type VARCHAR(80), genre VARCHAR(80),
-  size VARCHAR(80), period VARCHAR(40),
-  price DECIMAL(10,2), image_url VARCHAR(255),
-  is_available BOOLEAN DEFAULT TRUE, description TEXT,
-  FOREIGN KEY (vendor_id) REFERENCES users(id),
-  FOREIGN KEY (category_id) REFERENCES categories(id)
-);
+-- ========== USERS ==========
+-- role: 'admin','customer','artist', 'gallery'
+CREATE TABLE users (
+  userId            INT AUTO_INCREMENT PRIMARY KEY,
+  userName      VARCHAR(50)  NOT NULL UNIQUE,
+  email         VARCHAR(120) NOT NULL UNIQUE,
+  passwordHash VARCHAR(255) NOT NULL,
+  role          ENUM('admin','customer','artist', 'gallery') NOT NULL,
+  createdAt    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  isDeleted TINYINT NOT NULL DEFAULT 0
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS orders(
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  customer_id INT, order_type ENUM('lease','booking','purchase') NOT NULL DEFAULT 'lease',
-  total DECIMAL(10,2) DEFAULT 0, status VARCHAR(40) DEFAULT 'CONFIRMED',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  full_name VARCHAR(160), phone VARCHAR(40), email VARCHAR(160),
-  address_line VARCHAR(255), city VARCHAR(120), state VARCHAR(80), postcode VARCHAR(20),
-  FOREIGN KEY (customer_id) REFERENCES users(id)
-);
+-- ========== PROVIDERS (Artists/Galleries owned by vendor users) ==========
+CREATE TABLE providers (
+  providersId            INT AUTO_INCREMENT PRIMARY KEY,
+  userId       INT NOT NULL,
+  providerType ENUM('Artist','Gallery') NOT NULL,
+  artistName    VARCHAR(100),
+  galleryName   VARCHAR(100),
+  CONSTRAINT fk_provider_user
+    FOREIGN KEY (userId) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS order_items(
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  order_id INT, item_id INT, qty INT DEFAULT 1, price DECIMAL(10,2),
-  lease_start DATE, lease_end DATE,
-  FOREIGN KEY(order_id) REFERENCES orders(id),
-  FOREIGN KEY(item_id) REFERENCES items(id)
-);
+-- ========== CUSTOMERS ==========
+CREATE TABLE customers (
+  customerId      INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL,
+  CONSTRAINT fk_customer_user
+    FOREIGN KEY (userId) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ========== ADDRESSES (ใช้กับ Order) ==========
+CREATE TABLE addresses (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  address       VARCHAR(255) NOT NULL,
+  city          VARCHAR(100) NOT NULL,
+  state         VARCHAR(50)  NOT NULL,
+  postcode      VARCHAR(20)  NOT NULL,
+  recipientName VARCHAR(100) NOT NULL
+) ENGINE=InnoDB;
+
+-- ========== PAYMENTS (mock) ==========
+CREATE TABLE payments (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  cardNumber VARCHAR(50)  NOT NULL,
+  expDate    VARCHAR(10)  NOT NULL,
+  cvv        VARCHAR(10)  NOT NULL
+) ENGINE=InnoDB;
+
+-- ========== ARTWORKS ==========
+-- leaseStatus: 'Available' | 'Unavailable'
+CREATE TABLE artworks (
+  artworkId             INT AUTO_INCREMENT PRIMARY KEY,
+  providerId    INT NOT NULL,
+  title          VARCHAR(200) NOT NULL,
+  artistName     VARCHAR(100) NOT NULL,
+  galleryName    VARCHAR(100) NULL,
+  type           ENUM('Oil Painting', 'Pastel Painting', 'Watercolor Painting', 'Acrylic Painting', 'Digital Painting') NOT NULL,
+  genre          VARCHAR(50)  NOT NULL,
+  pricePerMonth  DECIMAL(10,2) NOT NULL,
+  size           VARCHAR(50)  NOT NULL,
+  year           ENUM('before 1980s','1980s', '1990s', '2000', '2010', '2020', '2021', '2022', '2023', '2024', '2025') NOT NULL,
+  leaseStatus    ENUM('Available','Unavailable') NOT NULL DEFAULT 'Available',
+  imageUrl       VARCHAR(255) NOT NULL,
+  description    TEXT,
+  createDate     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updateDate     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  isDeleted TINYINT NOT NULL DEFAULT 0,
+  CONSTRAINT fk_artwork_provider
+    FOREIGN KEY (provider_id) REFERENCES providers(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_artworks_status ON artworks(leaseStatus);
+CREATE INDEX idx_artworks_genre  ON artworks(genre);
+CREATE INDEX idx_artworks_type   ON artworks(type);
+
+-- ========== CARTS ==========
+CREATE TABLE carts (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL,
+  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_cart_customer
+    FOREIGN KEY (userId) REFERENCES customers(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ========== CART ITEMS ==========
+CREATE TABLE cart_items (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  cartId       INT NOT NULL,
+  artworkId    INT NOT NULL,
+  imageUrl      VARCHAR(255) NOT NULL,
+  pricePerMonth DECIMAL(10,2) NOT NULL,
+  startDate     DATE NOT NULL,
+  endDate       DATE NOT NULL,
+  months        DECIMAL(6,2) NOT NULL,
+  totalPrice    DECIMAL(12,2) NOT NULL,
+  createDate    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updateDate    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  isDeleted TINYINT NOT NULL DEFAULT 0,
+  CONSTRAINT fk_ci_cart    FOREIGN KEY (cart_id)    REFERENCES carts(id)     ON DELETE CASCADE,
+  CONSTRAINT fk_ci_artwork FOREIGN KEY (artwork_id) REFERENCES artworks(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- ========== ORDERS ==========
+CREATE TABLE orders (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL,
+  email       VARCHAR(100) NOT NULL,
+  phoneNumber VARCHAR(50)  NOT NULL,
+  totalPrice  DECIMAL(12,2) NOT NULL,
+  orderDate   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  addressId   INT NOT NULL,
+  paymentId   INT NOT NULL,
+  CONSTRAINT fk_order_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_order_address  FOREIGN KEY (addressId)   REFERENCES addresses(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_order_payment  FOREIGN KEY (paymentId)   REFERENCES payments(id)  ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- ========== ORDER ITEMS ==========
+CREATE TABLE order_items (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  orderId       INT NOT NULL,
+  artworkId     INT NOT NULL,
+  imageUrl      VARCHAR(255) NOT NULL,
+  pricePerMonth DECIMAL(10,2) NOT NULL,
+  startDate     DATE NOT NULL,
+  endDate       DATE NOT NULL,
+  months        DECIMAL(6,2) NOT NULL,
+  totalPrice    DECIMAL(12,2) NOT NULL,
+  createDate    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_oi_order   FOREIGN KEY (orderId)   REFERENCES orders(id)   ON DELETE CASCADE,
+  CONSTRAINT fk_oi_artwork FOREIGN KEY (artworkId) REFERENCES artworks(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+
 
 -- ===== Seeds (แก้รหัสผ่านเป็น hash จริงภายหลัง) =====
 INSERT IGNORE INTO users (id,name,email,password_hash,role) VALUES

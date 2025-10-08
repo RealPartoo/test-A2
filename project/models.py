@@ -1,87 +1,183 @@
-# project/models.py
-import os
-import pymysql
-from pymysql.cursors import DictCursor
 from werkzeug.security import generate_password_hash, check_password_hash
+from .extensions import get_db
 
-# ====== DB CONFIG ======
-DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
-DB_PORT = int(os.getenv("DB_PORT", "3306"))
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASS = os.getenv("DB_PASS", "P@$$w0rd")
-DB_NAME = os.getenv("DB_NAME", "IFN582_Database")   # ปรับให้เป็นชื่อ DB ของคุณ
+# ---------------- Users ----------------
+VALID_ROLES = {"admin", "customer", "artist", "gallery"}
 
-def get_db():
-    """
-    คืน connection ใหม่ทุกครั้งที่เรียก (autocommit เปิดไว้)
-    """
-    return pymysql.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        user=DB_USER,
-        password=DB_PASS,
-        database=DB_NAME,
-        autocommit=True,
-        cursorclass=DictCursor,
-        charset="utf8mb4",
-    )
+def hash_password(raw: str) -> str:
+    return generate_password_hash(raw)
 
-# ====== SCHEMA BOOTSTRAP ======
-def ensure_schema():
-    """
-    สร้างตาราง users ถ้ายังไม่มี
-    """
-    sql = """
-    CREATE TABLE IF NOT EXISTS users (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        name VARCHAR(100) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        password_hash VARCHAR(255) NOT NULL,
-        role ENUM('admin','vendor','customer') NOT NULL DEFAULT 'customer',
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    """
-    with get_db() as conn, conn.cursor() as cur:
-        cur.execute(sql)
+def verify_password(stored_hash: str, raw: str) -> bool:
+    return check_password_hash(stored_hash, raw)
 
-# เรียกตอน import ไฟล์ เพื่อให้แน่ใจว่ามีตาราง
-ensure_schema()
-
-# ====== PASSWORD HELPERS ======
-def hash_password(plain: str) -> str:
-    return generate_password_hash(plain, method="pbkdf2:sha256", salt_length=16)
-
-def verify_password(plain: str, password_hash: str) -> bool:
-    return check_password_hash(password_hash, plain)
-
-# ====== USER QUERIES ======
 def get_user_by_email(email: str):
-    """
-    คืน dict {'id','name','email','password_hash','role',...} หรือ None
-    """
-    sql = "SELECT id, name, email, password_hash, role, created_at, updated_at FROM users WHERE email=%s LIMIT 1"
-    with get_db() as conn, conn.cursor() as cur:
-        cur.execute(sql, (email,))
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT userId, userName, email, passwordHash, role, isDeleted
+            FROM users
+            WHERE email=%s AND isDeleted=0
+            LIMIT 1
+        """, (email.strip().lower(),))
         return cur.fetchone()
 
-def create_user(name: str, email: str, password_plain: str, role: str = "customer"):
-    """
-    สร้างผู้ใช้ใหม่ (จะ raise error ถ้า email ซ้ำ เพราะ unique)
-    """
-    # normalize inputs
-    name = (name or "").strip()
-    email = (email or "").strip().lower()
-    role = (role or "customer").strip().lower()
-    if role not in ("admin", "vendor", "customer"):
-        role = "customer"
+def get_user_by_id(user_id: int):
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT userId, userName, email, passwordHash, role, isDeleted
+            FROM users
+            WHERE userId=%s AND isDeleted=0
+            LIMIT 1
+        """, (user_id,))
+        return cur.fetchone()
 
-    password_hash = hash_password(password_plain)
+def create_user(userName: str, email: str, password: str, role: str = "customer"):
+    role = role if role in VALID_ROLES else "customer"
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            INSERT INTO users (userName, email, passwordHash, role, isDeleted)
+            VALUES (%s, %s, %s, %s, 0)
+        """, (userName.strip(), email.strip().lower(), hash_password(password), role))
+    db.commit()
 
-    sql = """
-        INSERT INTO users (name, email, password_hash, role)
-        VALUES (%s, %s, %s, %s)
+# ---------------- Providers ----------------
+def get_provider_by_user(user_id: int):
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT providerId, userId, providerType, artistName, galleryName
+            FROM providers
+            WHERE userId=%s
+            LIMIT 1
+        """, (user_id,))
+        return cur.fetchone()
+
+def ensure_provider_for_user(user_id: int, role: str, display_name: str):
+    """สร้าง provider (Artist/Gallery) อัตโนมัติ หากยังไม่มี"""
+    prov = get_provider_by_user(user_id)
+    if prov:
+        return prov
+    providerType = "Artist" if role == "artist" else "Gallery"
+    artistName   = display_name if providerType == "Artist" else None
+    galleryName  = display_name if providerType == "Gallery" else None
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            INSERT INTO providers(userId, providerType, artistName, galleryName)
+            VALUES (%s, %s, %s, %s)
+        """, (user_id, providerType, artistName, galleryName))
+    db.commit()
+    return get_provider_by_user(user_id)
+
+# ---------------- Artworks ----------------
+def create_artwork(provider_id: int, data: dict) -> int:
     """
-    with get_db() as conn, conn.cursor() as cur:
-        cur.execute(sql, (name, email, password_hash, role))
-        return cur.lastrowid
+    data keys: title, artistName, galleryName, type, genre, pricePerMonth (float),
+               size, year, leaseStatus, imageUrl, description
+    """
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            INSERT INTO artworks
+            (providerId, title, artistName, galleryName, type, genre, pricePerMonth,
+             size, year, leaseStatus, imageUrl, description, isDeleted)
+            VALUES
+            (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,0)
+        """, (
+            provider_id,
+            data["title"], data["artistName"], data["galleryName"],
+            data["type"], data["genre"], data["pricePerMonth"],
+            data["size"], data["year"], data["leaseStatus"],
+            data["imageUrl"], data["description"]
+        ))
+        new_id = cur.lastrowid
+    db.commit()
+    return new_id
+
+def list_artworks(filters: dict) -> list:
+    """
+    filters: artist, gallery, type, genre, price_range(tag), size_tag, period_tag, q
+    """
+    db = get_db()
+    where, params = ["isDeleted=0"], []
+
+    if filters.get("artist"):
+        where.append("artistName=%s"); params.append(filters["artist"])
+    if filters.get("gallery"):
+        where.append("galleryName=%s"); params.append(filters["gallery"])
+    if filters.get("type"):
+        where.append("type=%s"); params.append(filters["type"])
+    if filters.get("genre"):
+        where.append("genre=%s"); params.append(filters["genre"])
+    if filters.get("q"):
+        where.append("(title LIKE %s OR artistName LIKE %s OR galleryName LIKE %s)")
+        q = f"%{filters['q']}%"
+        params += [q, q, q]
+    # price bucket
+    if filters.get("price"):
+        tag = filters["price"]
+        if tag == "20000+":
+            where.append("pricePerMonth >= 20000")
+        else:
+            s, e = tag.split("-")
+            where.append("pricePerMonth BETWEEN %s AND %s")
+            params += [float(s), float(e)]
+    # size bucket
+    if filters.get("size"):
+        t = filters["size"]
+        if t == "s":   where.append("size='Small ≤40cm'")
+        if t == "m":   where.append("size='Medium 41–100cm'")
+        if t == "l":   where.append("size='Large 101–180cm'")
+        if t == "xl":  where.append("size='Oversize 180cm+'")
+    # year/period
+    if filters.get("period"):
+        p = filters["period"]
+        if p == "pre-1980": where.append("year='before 1980s'")
+        elif p.endswith("0s"): where.append("year=%s"); params.append(p[:-1])  # '2020s' -> '2020'
+
+    sql = f"""
+      SELECT artworkId, title, artistName, galleryName, type, genre,
+             pricePerMonth, size, year, leaseStatus, imageUrl, description
+      FROM artworks
+      WHERE {" AND ".join(where)}
+      ORDER BY artworkId DESC
+    """
+    with db.cursor() as cur:
+        cur.execute(sql, params)
+        return cur.fetchall()
+
+def get_artwork(artwork_id: int):
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+          SELECT artworkId, providerId, title, artistName, galleryName, type, genre,
+                 pricePerMonth, size, year, leaseStatus, imageUrl, description
+          FROM artworks
+          WHERE artworkId=%s AND isDeleted=0
+          LIMIT 1
+        """, (artwork_id,))
+        return cur.fetchone()
+
+def list_distinct_artists():
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT artistName
+            FROM artworks
+            WHERE isDeleted=0 AND artistName IS NOT NULL AND artistName <> ''
+            ORDER BY artistName
+        """)
+        return [r["artistName"] for r in cur.fetchall()]
+
+def list_distinct_galleries():
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT DISTINCT galleryName
+            FROM artworks
+            WHERE isDeleted=0 AND galleryName IS NOT NULL AND galleryName <> ''
+            ORDER BY galleryName
+        """)
+        return [r["galleryName"] for r in cur.fetchall()]
