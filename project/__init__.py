@@ -1,46 +1,44 @@
 # project/__init__.py
 import os
-from flask import Flask, session
-from flask_login import LoginManager
-from .config import DevelopmentConfig  # ใช้ dev เป็นค่าเริ่มต้น
-from .extensions import close_db
-from .auth import auth, load_user_from_db
-from .views import main
+from flask import Flask
 
-# ----- Flask-Login -----
-login_manager = LoginManager()
-login_manager.login_view = "auth.login"
-
-@login_manager.user_loader
-def _load_user(user_id):
-    return load_user_from_db(user_id)
+# binds Flask-MySQLdb in models.py and exposes get_db() etc.
+from .models import init_models, close_db
 
 def create_app():
-    app = Flask(__name__, template_folder="templates", static_folder="static")
-    app.config.from_object(DevelopmentConfig)
+    app = Flask(__name__, static_folder="static", template_folder="templates")
 
-    # ===== Uploads (static/uploads) =====
-    # DB จะเก็บ imageUrl เป็น 'uploads/<file>'
-    static_dir = os.path.join(app.root_path, "static")
-    upload_root = os.path.join(static_dir, "uploads")
-    os.makedirs(upload_root, exist_ok=True)
+    # ---- Base config (override via env) ----
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret")
 
-    # ตั้งค่าเริ่มต้น
-    app.config.setdefault("UPLOAD_FOLDER", upload_root)  # ที่ “เซฟไฟล์จริง”
-    app.config.setdefault("ALLOWED_IMAGE_EXTS", {"jpg", "jpeg", "png", "gif", "webp"})
-    app.config.setdefault("MAX_CONTENT_LENGTH", 16 * 1024 * 1024)  # 16MB
+    # ---- MySQL (Flask-MySQLdb) ----
+    app.config["MYSQL_HOST"] = os.getenv("MYSQL_HOST", "127.0.0.1")
+    app.config["MYSQL_PORT"] = int(os.getenv("MYSQL_PORT", "3306"))
+    app.config["MYSQL_USER"] = os.getenv("MYSQL_USER", "root")
+    app.config["MYSQL_PASSWORD"] = os.getenv("MYSQL_PASSWORD", "password")
+    app.config["MYSQL_DB"] = os.getenv("MYSQL_DB", "artlease")
+    # return rows as dicts so templates can use art.title, etc.
+    app.config["MYSQL_CURSORCLASS"] = "DictCursor"
 
-    # ----- Login / teardown -----
-    login_manager.init_app(app)
+    # ---- Uploads ----
+    upload_dir = os.path.join(app.root_path, "static", "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    app.config["UPLOAD_FOLDER"] = upload_dir
+    app.config["ALLOWED_IMAGE_EXTS"] = {"jpg", "jpeg", "png", "gif", "webp"}
+
+    # ---- DB bind & teardown ----
+    init_models(app)
     app.teardown_appcontext(close_db)
 
-    # ----- Jinja context (badge ตะกร้าใน navbar) -----
-    @app.context_processor
-    def inject_nav_badges():
-        cart = session.get("cart", [])
-        return {"cart_count": len(cart)}
-
-    # ----- Blueprints -----
-    app.register_blueprint(auth)
+    # ---- Blueprints ----
+    from .views import main
     app.register_blueprint(main)
+
+    # optional auth blueprint (if present)
+    try:
+        from .auth import auth
+        app.register_blueprint(auth)
+    except Exception:
+        pass
+
     return app

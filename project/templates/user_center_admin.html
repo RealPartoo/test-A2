@@ -3,101 +3,186 @@
 {% block content %}
 
 <style>
-  .custom-tabs{background:#f1f3f5;border-radius:12px;padding:4px;display:flex;justify-content:center;gap:8px;}
-  .custom-tabs .nav-link{border:none;border-radius:10px;padding:10px 20px;font-weight:500;color:#333;}
-  .custom-tabs .nav-link.active{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.08);}
-  .custom-table thead{background:#f9f9f9;font-weight:600;}
-  .custom-table th,.custom-table td{padding:14px 20px;vertical-align:middle;}
-  .custom-table tbody tr{border-bottom:1px solid #e9ecef;}
-  .art-card{border:1px solid #e9ecef;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05);overflow:hidden;}
-  .art-card img{width:100%;height:200px;object-fit:cover;}
-  .art-card .card-body{padding:16px;}
-  .badge-status{position:absolute;top:10px;right:10px;padding:5px 10px;border-radius:12px;font-size:.75rem;font-weight:500;}
-  .badge-available{background:#e6f8ec;color:#2f9e44;}
-  .badge-unavailable{background:#f8d7da;color:#c92a2a;}
+  /* Tabs */
+  .custom-tabs{background:#f1f3f5;border-radius:12px;padding:4px;display:flex;gap:8px;flex-wrap:wrap}
+  .custom-tabs .nav-link{border:none;border-radius:10px;padding:10px 20px;font-weight:500;color:#333}
+  .custom-tabs .nav-link.active{background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.08)}
+
+  /* Tables */
+  .custom-table thead{background:#f9f9f9;font-weight:600}
+  .custom-table th,.custom-table td{padding:14px 20px;vertical-align:middle}
+  .custom-table tbody tr{border-bottom:1px solid #e9ecef}
+
+  /* Card grid */
+  .art-card{border:1px solid #e9ecef;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05);overflow:hidden;height:100%}
+  .art-card img{width:100%;height:200px;object-fit:cover}
+  .badge-status{position:absolute;top:10px;right:10px;padding:5px 10px;border-radius:12px;font-size:.75rem;font-weight:500}
+  .badge-available{background:#e6f8ec;color:#2f9e44}
+  .badge-unavailable{background:#f8d7da;color:#c92a2a}
 </style>
 
-<div class="container-fluid">
+<div class="container-fluid py-4">
 
-  <ul class="nav custom-tabs mb-4" id="myTab" role="tablist">
+  <!-- Tabs -->
+  <ul class="nav custom-tabs mb-4" id="adminTabs" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab">All Orders (3)</button>
+      <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab">
+        All Orders ({{ (orders or [])|length }})
+      </button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="artworks-tab" data-bs-toggle="tab" data-bs-target="#artworks" type="button" role="tab">All Artworks (4)</button>
+      <button class="nav-link" id="artworks-tab" data-bs-toggle="tab" data-bs-target="#artworks" type="button" role="tab">
+        All Artworks ({{ (artworks or [])|length }})
+      </button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link" id="providers-tab" data-bs-toggle="tab" data-bs-target="#providers" type="button" role="tab">Providers (3)</button>
+      <button class="nav-link" id="providers-tab" data-bs-toggle="tab" data-bs-target="#providers" type="button" role="tab">
+        Providers ({{ (providers or [])|length }})
+      </button>
     </li>
   </ul>
 
-  <div class="tab-content">
-    <!-- Orders -->
+  <div class="tab-content" id="adminTabsContent">
+
+    <!-- ========== ORDERS ========== -->
     <div class="tab-pane fade show active" id="orders" role="tabpanel">
-      <div class="table-responsive">
-        <table class="table custom-table">
-          <thead>
-          <tr><th>Artwork</th><th>Customer</th><th>Artist</th><th>Total Price</th><th>Create Time</th></tr>
-          </thead>
-          <tbody>
-          <tr><td><img src="https://picsum.photos/80/50?1" class="me-2"> Abstract Composition</td><td>Alice Johnson</td><td>John Smith</td><td>AUD 837</td><td>2025-09-10 14:30</td></tr>
-          <tr><td><img src="https://picsum.photos/80/50?2" class="me-2"> Modern Expression</td><td>Bob Wilson</td><td>Jane Doe</td><td>AUD 700</td><td>2025-08-01 09:15</td></tr>
-          <tr><td><img src="https://picsum.photos/80/50?3" class="me-2"> Colorful Dreams</td><td>Carol Brown</td><td>Mike Johnson</td><td>AUD 180</td><td>2025-09-25 16:45</td></tr>
-          </tbody>
-        </table>
-      </div>
+      {% if orders and orders|length %}
+        {% for order in orders %}
+        <div class="card mb-4 border-0 shadow-sm rounded-4">
+          <div class="card-header bg-light d-flex flex-wrap align-items-center justify-content-between">
+            <div>
+              <strong>Order #{{ order.orderId }}</strong>
+              <span class="ms-3">Total:
+                <span class="text-primary">AUD {{ "%.2f"|format(order.totalPrice|float) }}</span>
+              </span>
+              <span class="ms-3">
+                Date:
+                {% if order.orderDate is string %}
+                  {{ order.orderDate }}
+                {% else %}
+                  {{ order.orderDate.strftime("%Y-%m-%d %H:%M") }}
+                {% endif %}
+              </span>
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+            <table class="table mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Artwork</th>
+                  <th>Artist</th>
+                  <th>Gallery</th>
+                  <th>Rental Period</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in order["items"] %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% set img = item.imageUrl %}
+                      <img
+                        src="{{ img and url_for('static', filename=img) or url_for('static', filename='img/default.jpg') }}"
+                        width="80" height="50" class="rounded border me-2" alt="">
+                      <span>{{ item.title }}</span>
+                    </div>
+                  </td>
+                  <td>{{ item.artistName }}</td>
+                  <td>{{ item.galleryName or '-' }}</td>
+                  <td>
+                    {% if item.startDate is string %}{{ item.startDate }}{% else %}{{ item.startDate.strftime('%Y-%m-%d') }}{% endif %}
+                    –
+                    {% if item.endDate is string %}{{ item.endDate }}{% else %}{{ item.endDate.strftime('%Y-%m-%d') }}{% endif %}
+                  </td>
+                  <td>AUD {{ "%.2f"|format(item.totalPrice|float) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="alert alert-info">No orders found.</div>
+      {% endif %}
     </div>
 
-    <!-- Artworks -->
+    <!-- ========== ARTWORKS ========== -->
     <div class="tab-pane fade" id="artworks" role="tabpanel">
-      <div class="row g-3">
-        <div class="col-12 col-md-6 col-lg-3">
+      {% if artworks and artworks|length %}
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        {% for art in artworks %}
+        <div class="col">
           <div class="card art-card position-relative">
-            <img src="https://picsum.photos/400/250?4" alt="">
-            <span class="badge-status badge-available">Available</span>
-            <div class="card-body">
-              <h5 class="card-title">Abstract Composition</h5>
-              <p class="text-muted">John Smith, 2025<br>Kelly Gallery</p>
-              <p class="fw-bold">AUD 279</p>
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline-secondary btn-sm">Details</button>
-                <button class="btn btn-outline-danger btn-sm">Delete</button>
-              </div>
+            <img
+              src="{{ art.imageUrl and url_for('static', filename=art.imageUrl) or url_for('static', filename='img/default.jpg') }}"
+              alt="">
+            {% if art.leaseStatus == 'Available' %}
+              <span class="badge-status badge-available">Available</span>
+            {% else %}
+              <span class="badge-status badge-unavailable">Unavailable</span>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+              <h6 class="card-title mb-1">{{ art.title }}</h6>
+              <p class="text-muted mb-1">{{ art.artistName }}{% if art.year %}, {{ art.year }}{% endif %}</p>
+              <p class="text-muted mb-1">{{ art.galleryName or '-' }}</p>
+              <p class="fw-bold mb-0">AUD {{ "%.2f"|format(art.pricePerMonth|float) }}</p>
             </div>
           </div>
         </div>
-        <div class="col-12 col-md-6 col-lg-3">
-          <div class="card art-card position-relative">
-            <img src="https://picsum.photos/400/250?5" alt="">
-            <span class="badge-status badge-unavailable">Unavailable</span>
-            <div class="card-body">
-              <h5 class="card-title">Modern Expression</h5>
-              <p class="text-muted">Jane Doe, 2025<br>Modern Gallery</p>
-              <p class="fw-bold">AUD 350</p>
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline-secondary btn-sm">Details</button>
-                <button class="btn btn-outline-danger btn-sm">Delete</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        {% endfor %}
       </div>
+      {% else %}
+        <div class="alert alert-info">No artworks found.</div>
+      {% endif %}
     </div>
 
-    <!-- Providers -->
+    <!-- ========== PROVIDERS ========== -->
     <div class="tab-pane fade" id="providers" role="tabpanel">
       <div class="table-responsive">
-        <table class="table custom-table">
+        <table class="table custom-table align-middle">
           <thead>
-          <tr><th>Provider</th><th>Gallery</th><th>Artworks</th><th>Join Date</th><th>Actions</th></tr>
+            <tr>
+              <th>Provider</th>
+              <th>Gallery</th>
+              <th>Artworks</th>
+              <th>Join Date</th>
+              <th></th>
+            </tr>
           </thead>
           <tbody>
-          <tr><td>John Smith<br><small class="text-muted">john.smith@email.com</small></td><td>Kelly Gallery</td><td>12</td><td>2024-01-15</td><td><button class="btn btn-outline-primary btn-sm">View</button></td></tr>
-          <tr><td>Jane Doe<br><small class="text-muted">jane.doe@email.com</small></td><td>Modern Gallery</td><td>8</td><td>2024-03-22</td><td><button class="btn btn-outline-primary btn-sm">View</button></td></tr>
+            {% if providers and providers|length %}
+              {% for p in providers %}
+              <tr>
+                <td>
+                  {{ p.userName }}<br>
+                  <small class="text-muted">{{ p.email }}</small>
+                </td>
+                <td>{{ p.galleryName or '-' }}</td>
+                <td>{{ p.artworkCount or 0 }}</td>
+                <td>
+                  {% if p.createDate is string %}
+                    {{ p.createDate }}
+                  {% else %}
+                    {{ p.createDate.strftime("%Y-%m-%d") }}
+                  {% endif %}
+                </td>
+                <td>
+                  <!-- placeholder action -->
+                  <a class="btn btn-outline-primary btn-sm" href="#">View</a>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="5" class="text-center text-muted">No providers found.</td></tr>
+            {% endif %}
           </tbody>
         </table>
       </div>
     </div>
+
   </div>
 </div>
 

@@ -3,53 +3,90 @@
 {% block content %}
 
 <div class="container-fluid mt-4">
-  <h4 class="mb-3">My order</h4>
+  <h4 class="mb-3">My Orders</h4>
 </div>
 
 <style>
   .custom-table thead{background:#f9f9f9;font-weight:600;}
   .custom-table th,.custom-table td{padding:14px 20px;vertical-align:middle;}
   .custom-table tbody tr{border-bottom:1px solid #e9ecef;}
-  .custom-table img{width:60px;height:40px;object-fit:cover;border-radius:6px;margin-right:8px;}
+  .thumb{width:80px;height:50px;object-fit:cover;border-radius:6px;margin-right:10px;border:1px solid #e5e7eb;}
 </style>
 
 <div class="container-fluid">
-  <div class="table-responsive">
-    <table class="table custom-table">
-      <thead>
-        <tr>
-          <th>Artwork</th>
-          <th>Artist</th>
-          <th>Gallery</th>
-          <th>Total Price</th>
-          <th>Create Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><img src="https://picsum.photos/80/50?1" alt="">Abstract Composition</td>
-          <td>John Smith</td>
-          <td>Kelly Gallery</td>
-          <td>AUD 837</td>
-          <td>2025-09-10 14:30</td>
-        </tr>
-        <tr>
-          <td><img src="https://picsum.photos/80/50?2" alt="">Modern Expression</td>
-          <td>Jane Doe</td>
-          <td>Modern Gallery</td>
-          <td>AUD 700</td>
-          <td>2025-08-01 09:15</td>
-        </tr>
-        <tr>
-          <td><img src="https://picsum.photos/80/50?3" alt="">Colorful Dreams</td>
-          <td>Mike Johnson</td>
-          <td>Art Space</td>
-          <td>AUD 180</td>
-          <td>2025-09-25 16:45</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  {% if orders and orders|length %}
+    {% for order in orders %}
+      <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-header bg-light d-flex flex-wrap align-items-center justify-content-between">
+          <div>
+            <strong>Order #{{ order.orderId }}</strong>
+            <span class="ms-3">Total:
+              <span class="text-primary">AUD {{ '%.2f'|format(order.totalPrice|float) }}</span>
+            </span>
+            <span class="ms-3">
+              Created:
+              {% if order.orderDate is string %}
+                {{ order.orderDate }}
+              {% else %}
+                {{ order.orderDate.strftime('%Y-%m-%d %H:%M') }}
+              {% endif %}
+            </span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table custom-table mb-0">
+            <thead>
+              <tr>
+                <th>Artwork</th>
+                <th>Artist</th>
+                <th>Gallery</th>
+                <th>Rental Period</th>
+                <th class="text-end">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in order["items"] %}
+              <tr>
+                <td>
+                  {% set img = item.imageUrl %}
+                  {% if img %}
+                    <img
+                      class="thumb"
+                      src="{{ img.startswith('http') and img or url_for('static', filename=img) }}"
+                      alt="{{ item.title }}"
+                    >
+                  {% else %}
+                    <img class="thumb" src="{{ url_for('static', filename='img/default.jpg') }}" alt="">
+                  {% endif %}
+                  {{ item.title }}
+                </td>
+                <td>{{ item.artistName }}</td>
+                <td>{{ item.galleryName or '-' }}</td>
+                <td>
+                  {% if item.startDate is string %}
+                    {{ item.startDate }}
+                  {% else %}
+                    {{ item.startDate.strftime('%Y-%m-%d') }}
+                  {% endif %}
+                  —
+                  {% if item.endDate is string %}
+                    {{ item.endDate }}
+                  {% else %}
+                    {{ item.endDate.strftime('%Y-%m-%d') }}
+                  {% endif %}
+                </td>
+                <td class="text-end">AUD {{ '%.2f'|format(item.totalPrice|float) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">You haven’t placed any orders yet.</div>
+  {% endif %}
 </div>
 
 {% endblock %}

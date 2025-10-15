@@ -1,88 +1,89 @@
 {% extends "base.html" %}
 {% block title %}Manage My Artworks{% endblock %}
+
 {% block content %}
 
-<style>
-  .art-card{border:1px solid #e9ecef;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05);overflow:hidden;height:100%;}
-  .art-card img{width:100%;height:200px;object-fit:cover;}
-  .art-card .card-body{padding:16px;}
-  .badge-status{position:absolute;top:12px;right:12px;padding:5px 10px;border-radius:12px;font-size:.75rem;font-weight:500;}
-  .badge-available{background:#e6f8ec;color:#2f9e44;}
-  .badge-unavailable{background:#f8d7da;color:#c92a2a;}
-  .action-buttons .btn{font-size:.85rem;padding:4px 12px;}
-</style>
-
+<!-- Header + Upload -->
 <div class="container-fluid mt-4 d-flex justify-content-between align-items-center">
-  <h5 class="mb-0">Manage my uploaded artworks</h5>
-  <a href="{{ url_for('main.vendor_center') }}" class="btn btn-primary btn-sm">+ Upload Artwork</a>
+  <h5 class="mb-0">Manage My Artworks</h5>
+  <a href="{{ url_for('main.upload') }}" class="btn btn-dark btn-lg fw-semibold">+ Upload Artwork</a>
 </div>
 
-<div class="container-fluid mt-3">
-  <div class="row g-3">
+<!-- Grid -->
+<div class="container py-4">
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
 
-    <div class="col-12 col-sm-6 col-lg-3">
-      <div class="card art-card position-relative">
-        <img src="https://picsum.photos/400/250?1" alt="">
-        <span class="badge-status badge-available">Available</span>
-        <div class="card-body">
-          <h6 class="card-title mb-1">Abstract Composition</h6>
-          <p class="text-muted mb-1">John Smith, 2025<br>Kelly Gallery</p>
-          <p class="fw-bold mb-2">AUD 279</p>
-          <div class="action-buttons d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm">✏️ Edit</button>
-            <button class="btn btn-outline-danger btn-sm">🗑️ Delete</button>
+    {% if artworks and artworks|length > 0 %}
+      {% for art in artworks %}
+      <div class="col">
+        <div class="card h-100 shadow-sm border-0 rounded-4">
+
+          <!-- image -->
+          <div class="ratio ratio-16x9 bg-light">
+            {# DB เก็บเป็น 'uploads/<file>' => เรียกผ่าน static #}
+            <img src="{{ url_for('static', filename=art.imageUrl) }}"
+                 class="img-fluid rounded-top"
+                 alt="{{ art.title }}">
+          </div>
+
+          <!-- body -->
+          <div class="card-body d-flex flex-column">
+
+            <!-- title + status -->
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <h6 class="card-title mb-0">{{ art.title }}</h6>
+              {% if (art.leaseStatus or '') == 'Available' %}
+                <span class="badge rounded-pill text-bg-success">Available</span>
+              {% else %}
+                <span class="badge rounded-pill text-bg-secondary">Unavailable</span>
+              {% endif %}
+            </div>
+
+            <!-- meta -->
+            <p class="mb-0 small text-muted">
+              {{ art.artistName }}{% if art.year %}, {{ art.year }}{% endif %}
+            </p>
+            <p class="mb-0 small text-muted">
+              {{ art.galleryName or '-' }}
+            </p>
+            <p class="mb-2 fw-semibold">
+              AUD {{ '%.2f'|format( (art.pricePerMonth|float) if art.pricePerMonth is not none else 0 ) }}
+            </p>
+
+            <!-- actions -->
+<div class="mt-auto d-flex justify-content-end gap-2">
+  <!-- Edit -->
+  <a
+    href="{{ url_for('main.item_edit', artwork_id=art.artworkId) }}"
+    class="btn btn-outline-secondary btn-sm">
+    Edit
+  </a>
+
+  <!-- Delete (POST) -->
+  <form
+    action="{{ url_for('main.item_delete', artwork_id=art.artworkId) }}"
+    method="post"
+    class="d-inline"
+    onsubmit="return confirm('Delete this artwork?');">
+    {# ถ้าใช้ Flask-WTF ให้ใส่ csrf_token ด้วย:
+       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    #}
+    <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+  </form>
+</div>
+
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-lg-3">
-      <div class="card art-card position-relative">
-        <img src="https://picsum.photos/400/250?2" alt="">
-        <span class="badge-status badge-unavailable">Unavailable</span>
-        <div class="card-body">
-          <h6 class="card-title mb-1">Modern Expression</h6>
-          <p class="text-muted mb-1">Jane Doe, 2025<br>Modern Gallery</p>
-          <p class="fw-bold mb-2">AUD 350</p>
-          <div class="action-buttons d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm">✏️ Edit</button>
-            <button class="btn btn-outline-danger btn-sm">🗑️ Delete</button>
-          </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="alert alert-light border">
+          You haven’t uploaded any artworks yet.
+          <a href="{{ url_for('main.upload') }}" class="ms-2">Upload now</a>
         </div>
       </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-lg-3">
-      <div class="card art-card position-relative">
-        <img src="https://picsum.photos/400/250?3" alt="">
-        <span class="badge-status badge-available">Available</span>
-        <div class="card-body">
-          <h6 class="card-title mb-1">Colorful Dreams</h6>
-          <p class="text-muted mb-1">Mike Johnson, 2025<br>Art Space</p>
-          <p class="fw-bold mb-2">AUD 180</p>
-          <div class="action-buttons d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm">✏️ Edit</button>
-            <button class="btn btn-outline-danger btn-sm">🗑️ Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-lg-3">
-      <div class="card art-card position-relative">
-        <img src="https://picsum.photos/400/250?4" alt="">
-        <span class="badge-status badge-available">Available</span>
-        <div class="card-body">
-          <h6 class="card-title mb-1">Geometric Harmony</h6>
-          <p class="text-muted mb-1">John Smith, 2025<br>Kelly Gallery</p>
-          <p class="fw-bold mb-2">AUD 420</p>
-          <div class="action-buttons d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm">✏️ Edit</button>
-            <button class="btn btn-outline-danger btn-sm">🗑️ Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    {% endif %}
 
   </div>
 </div>

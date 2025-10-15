@@ -4,49 +4,71 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>{% block title %}Art lease{% endblock %}</title>
+
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Your site CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
-  <div class="container">
-    <a class="navbar-brand fw-semibold" href="{{ url_for('main.home') }}">Art lease</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="{{ url_for('main.home') }}">Art lease</a>
 
-    <div class="collapse navbar-collapse" id="nav">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link{% if request.path=='/' %} active{% endif %}" href="{{ url_for('main.home') }}">Home</a></li>
-        <li class="nav-item"><a class="nav-link{% if request.path.startswith('/gallery') %} active{% endif %}" href="{{ url_for('main.gallery') }}">Art lease</a></li>
-        <li class="nav-item">
-          <a class="nav-link{% if request.path.startswith('/checkout') %} active{% endif %}" href="{{ url_for('main.checkout') }}">
-            Checkout <span class="badge text-bg-secondary">{{ (session.get('cart') or [])|length }}</span>
-          </a>
-        </li>
-        {% if current_user.is_authenticated and current_user.role in ['artist','gallery','admin'] %}
-          <li class="nav-item"><a class="nav-link{% if request.path.startswith('/upload') %} active{% endif %}" href="{{ url_for('main.upload') }}">Upload</a></li>
+      <!-- Hamburger -->
+      <button class="navbar-toggler" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#nav"
+              aria-controls="nav"
+              aria-expanded="false"
+              aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Collapsible content -->
+      <div class="collapse navbar-collapse" id="nav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link{% if request.path=='/' %} active{% endif %}" href="{{ url_for('main.home') }}">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link{% if request.path.startswith('/gallery') %} active{% endif %}" href="{{ url_for('main.gallery') }}">Art lease</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link{% if request.path.startswith('/checkout') %} active{% endif %}" href="{{ url_for('main.checkout') }}">
+              Checkout <span class="badge text-bg-secondary">{{ (session.get('cart') or [])|length }}</span>
+            </a>
+          </li>
+          {% if current_user.is_authenticated and current_user.role in ['artist','gallery','admin'] %}
+          <li class="nav-item">
+            <a class="nav-link{% if request.path.startswith('/upload') %} active{% endif %}" href="{{ url_for('main.upload') }}">Upload</a>
+          </li>
+          {% endif %}
+        </ul>
+
+        <!-- Search forwards to /gallery and preserves existing filters -->
+        <form class="d-flex me-lg-3" role="search" action="{{ url_for('main.gallery') }}" method="get">
+          <input class="form-control" type="search" name="q" placeholder="Search" value="{{ request.args.get('q','') }}">
+          {% for k, v in request.args.items() %}
+            {% if k != 'q' and v %}
+              <input type="hidden" name="{{ k }}" value="{{ v }}">
+            {% endif %}
+          {% endfor %}
+          <button class="btn btn-outline-success ms-2" type="submit">Search</button>
+        </form>
+
+        {% if session.get('cart') %}
+          <a class="btn btn-outline-secondary btn-sm me-2" href="{{ url_for('main.cart_clear') }}">Clear</a>
         {% endif %}
-      </ul>
 
-      <!-- Search forwards to /gallery and preserves existing filters -->
-      <form class="d-flex me-lg-3" role="search" action="{{ url_for('main.gallery') }}" method="get">
-        <input class="form-control" type="search" name="q" placeholder="Search" value="{{ request.args.get('q','') }}">
-        {% for k, v in request.args.items() %}
-          {% if k != 'q' and v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}
-        {% endfor %}
-        <button class="btn btn-outline-success ms-2" type="submit">Search</button>
-      </form>
-
-      {% if session.get('cart') %}
-        <a class="btn btn-outline-secondary btn-sm me-2" href="{{ url_for('main.cart_clear') }}">Clear</a>
-      {% endif %}
-
-      {% if current_user.is_authenticated %}
+        {% if current_user.is_authenticated %}
         <div class="d-flex align-items-center gap-2">
-          <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:32px;height:32px;background:#e9f0ff;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3b82f6" viewBox="0 0 24 24">
+          <span class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                style="width:32px;height:32px;background:#e9f0ff;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#3b82f6" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"/>
             </svg>
           </span>
@@ -59,8 +81,11 @@
               {{ current_user.role|capitalize }}
             </small>
           </div>
+
           <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Menu</button>
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              Menu
+            </button>
             <ul class="dropdown-menu dropdown-menu-end">
               {% if current_user.role == 'admin' %}
                 <li><a class="dropdown-item" href="{{ url_for('main.admin_center') }}">Admin center</a></li>
@@ -74,47 +99,48 @@
             </ul>
           </div>
         </div>
-      {% else %}
-        <a class="btn btn-light btn-sm me-2" href="{{ url_for('auth.register') }}">Sign up</a>
-        <a class="btn btn-dark btn-sm" href="{{ url_for('auth.login') }}">Sign in</a>
-      {% endif %}
+        {% else %}
+          <a class="btn btn-light btn-sm me-2" href="{{ url_for('auth.register') }}">Sign up</a>
+          <a class="btn btn-dark btn-sm" href="{{ url_for('auth.login') }}">Sign in</a>
+        {% endif %}
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
 
-<!-- Main content -->
-<main class="flex-grow-1">
-  {% block content %}{% endblock %}
-</main>
+  <!-- Main content -->
+  <main class="flex-grow-1">
+    {% block content %}{% endblock %}
+  </main>
 
-<footer class="mt-auto border-top">
-  <div class="container py-3 text-muted">© 2025 Art Lease Company, Inc</div>
-</footer>
+  <!-- Footer -->
+  <footer class="mt-auto border-top">
+    <div class="container py-3 text-muted">© 2025 Art Lease Company, Inc</div>
+  </footer>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Bootstrap Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Toasts (ONE place; do not also render alerts elsewhere) -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 2000">
-      {% for cat, msg in messages %}
-        <div class="toast align-items-center border-0 black-toast" role="alert" aria-live="assertive" aria-atomic="true">
-          <div class="d-flex">
-            <div class="toast-body">{{ msg }}</div>
-            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+  <!-- Toasts -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 2000">
+        {% for cat, msg in messages %}
+          <div class="toast align-items-center border-0 black-toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+              <div class="toast-body">{{ msg }}</div>
+              <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
           </div>
-        </div>
-      {% endfor %}
-    </div>
-    <script>
-      window.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.toast').forEach(function (t) {
-          try { new bootstrap.Toast(t, { delay: 3000 }).show(); } catch(e) {}
+        {% endfor %}
+      </div>
+      <script>
+        window.addEventListener('DOMContentLoaded', function () {
+          document.querySelectorAll('.toast').forEach(function (t) {
+            try { new bootstrap.Toast(t, { delay: 3000 }).show(); } catch(e) {}
+          });
         });
-      });
-    </script>
-  {% endif %}
-{% endwith %}
+      </script>
+    {% endif %}
+  {% endwith %}
 </body>
 </html>
